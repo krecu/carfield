@@ -1,0 +1,37 @@
+<?php
+
+/**
+ * Implements hook_field_schema().
+ */
+function carfield_field_schema($field) {
+  $columns = array(
+    'manufactures' => array(
+      'type' => 'int',
+      'unsigned' => true,
+      'not null' => true
+    ),
+    'year' => array(
+      'type' => 'int',
+      'unsigned' => true,
+      'not null' => true
+    ),
+    'model' => array(
+      'type' => 'int',
+      'unsigned' => true,
+      'not null' => true
+    ),
+    'modification' => array(
+      'type' => 'int',
+      'unsigned' => true,
+      'not null' => true
+    ),
+    'type' => array(
+      'type' => 'int',
+      'unsigned' => true,
+      'not null' => true
+    ),
+  );
+  return array(
+    'columns' => $columns,
+  );
+}

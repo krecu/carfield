@@ -1,0 +1,710 @@
+<?php
+
+/**
+ * @file
+ * Defines a field for attaching car to entities.
+ */
+
+/**
+ * Returns an array of default values for the carfield form elements.
+ */
+function carfield_default_values() {
+  return array(
+    'manufactures' => '',
+    'year' => '',
+    'model' => '',
+    'modification' => '',
+    'type' => '',
+  );
+}
+
+
+/**
+ * Implements hook_field_info().
+ * Provides the description of the field.
+ */
+function carfield_field_info() {
+  return array(
+    'carfield' => array(
+      'label' => t('Car'),
+      'description' => t('A field type used for storing car according the TECDOC standard'),
+      'default_widget' => 'carfield_widget',
+      'default_formatter' => 'carfield_formatter',
+      'property_type' => 'carfield',
+      'property_callbacks' => array('carfield_property_info_callback'),
+    ),
+  );
+}
+
+function carfield_property_info_callback(&$info, $entity_type, $field, $instance, $field_type) {
+  $property = &$info[$entity_type]['bundles'][$instance['bundle']]['properties'][$field['field_name']];
+  $property['getter callback'] = 'entity_metadata_field_verbatim_get';
+  $property['setter callback'] = 'entity_metadata_field_verbatim_set';
+  unset($property['query callback']);
+  $property['property info']['type'] = array(
+    'type' => 'integer',
+    'label' => t('Type'),
+    'description' => '',
+    'setter callback' => 'entity_property_verbatim_set',
+  );
+  $property['property info']['year'] = array(
+    'type' => 'integer',
+    'label' => t('Year'),
+    'description' => '',
+    'setter callback' => 'entity_property_verbatim_set',
+  );
+  $property['property info']['manufactures'] = array(
+    'type' => 'integer',
+    'label' => t('Manufactures'),
+    'description' => '',
+    'setter callback' => 'entity_property_verbatim_set',
+  );
+  $property['property info']['modification'] = array(
+    'type' => 'integer',
+    'label' => t('Modification'),
+    'description' => '',
+    'setter callback' => 'entity_property_verbatim_set',
+  );
+  $property['property info']['model'] = array(
+    'type' => 'integer',
+    'label' => t('Model'),
+    'description' => '',
+    'setter callback' => 'entity_property_verbatim_set',
+  );
+}
+
+function carfield_field_formatter_info() {
+  return array(
+    'carfield_formatter' => array(
+      'label' => t('Carfield formatter'),
+      'field types' => array('carfield')
+    )
+  );
+}
+
+function carfield_field_formatter_view($entity_type, $entity, $field, $instance, $lang, $items, $display) {
+  $element = array();
+
+  switch ($display['type']) {
+    case 'carfield_formatter':
+      // I'm not really familiar with these bits ... this is just to output *something*
+      $element[]['#markup'] = var_export($items, true);
+      break;
+  }
+
+  return $element;
+}
+
+/**
+ * Implements hook_element_info().
+ * Declare the field Form API element types and specify their default values.
+ * @see field_chuck_field_process().
+ */
+function carfield_element_info() {
+  $elements = array();
+  $elements['carfield_widget'] = array(
+    '#input' => TRUE,
+    '#process' => array('carfield_field_process'),
+    '#attributes' => array(),
+    '#tag' => 'div',
+  );
+  return $elements;
+}
+
+function carfield_field_process($element, $form_state, $complete_form) {
+
+  // get all manufactures
+//  $manufactures = carfield_get_manufactures();
+//  foreach ($manufactures as $id => $manufacture) {
+//    $manufactures[$id] = $manufacture->name;
+//  }
+
+  $element['manufactures'] = array(
+    '#type' => 'textfield',
+//    '#options' => $manufactures,
+    '#title' => t('Manufactures'),
+    '#default_value' => isset($element['#value']['manufactures']) ? $element['#value']['manufactures'] : null,
+  );
+
+
+  // get all years
+  //$years = carfield_get_years();
+
+  $element['year'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Year'),
+//    '#options' => $years,
+    '#default_value' => isset($element['#value']['year']) ? $element['#value']['year'] : null,
+    '#required' => $element['#required'],
+  );
+
+  // get all manufactures
+//  $models = carfield_get_models();
+//  foreach ($models as $id => $model) {
+//    $models[$id] = $model->name;
+//  }
+
+  $element['model'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Model'),
+//    '#options' => $models,
+    '#default_value' => isset($element['#value']['model']) ? $element['#value']['model'] : null,
+  );
+
+  // get all manufactures
+//  $modifications = carfield_get_modifications();
+//  foreach ($modifications as $id => $modification) {
+//    $modifications[$id] = $modification->short;
+//  }
+
+  $element['modification'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Modification'),
+//    '#options' => $modifications,
+    '#default_value' => isset($element['#value']['modification']) ? $element['#value']['modification'] : null,
+  );
+
+  // get all manufactures
+  $types = carfield_get_types();
+  foreach ($types as $id => $type) {
+    $types[$id] = $type->name;
+  }
+
+  $element['type'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Type'),
+//    '#options' => $types,
+    '#default_value' => isset($element['#value']['type']) ? $element['#value']['type'] : null,
+  );
+
+  // To prevent an extra required indicator, disable the required flag on the
+  // base element since all the sub-fields are already required if desired.
+  $element['#required'] = FALSE;
+
+  return $element;
+}
+
+function carfield_field_widget_form(&$form, &$form_state, $field, $instance, $lang, $items, $delta, $element) {
+  switch ($instance['widget']['type']) {
+    case 'carfield_widget':
+      $element += array(
+        '#type' => $instance['widget']['type'],
+        '#default_value' => isset($items[$delta]) ? $items[$delta] : '',
+      );
+      break;
+  }
+
+  return $element;
+}
+
+function carfield_widget_error($element, $error, $form, &$form_state) {
+  switch ($error['error']) {
+    case 'carfield_invalid':
+      form_error($element, $error['message']);
+      break;
+  }
+}
+
+function carfield_field_is_empty($item, $field) {
+  $fields = carfield_default_values();
+  $temp = array_keys($fields);
+  $key = array_shift($temp);
+  return empty($item[$key]);
+}
+
+function carfield_field_widget_info() {
+  return array(
+    'carfield_widget' => array(
+      'label' => t('Car form'),
+      'field types' => array('carfield'),
+    )
+  );
+}
+
+
+/**
+ * Get all manufactures or by id
+ * @param null $id
+ * @return mixed
+ */
+function carfield_get_manufactures($id = NULL) {
+  $query = db_select('carfield_manufactures', 'c')->fields('c', array('id', 'name'));
+  if ($id) {
+    $query->condition('id', $id);
+  }
+
+  $result = $query->execute()->fetchAllAssoc('id');
+  return $result;
+}
+
+/**
+ * Get all models or by id
+ * @param null $id
+ * @return mixed
+ */
+function carfield_get_models($id = NULL) {
+  $query = db_select('carfield_models', 'c')->fields('c', array('id', 'name', 'datestart', 'dateend'));
+  if ($id) {
+    $query->condition('id', $id);
+  }
+
+  $result = $query->execute()->fetchAllAssoc('id');
+  return $result;
+}
+
+/**
+ * Get all years
+ * @param null $id
+ * @return mixed
+ */
+function carfield_get_years($id = NULL) {
+  $query = db_select('carfield_models', 'c')->fields('c', array('id', 'name', 'datestart', 'dateend'));
+  if ($id) {
+    $query->condition('id', $id);
+  }
+  $query->orderBy('datestart');
+  $result = $query->execute()->fetchAllAssoc('id');
+  $dates = array();
+  foreach ($result as $item) {
+    $dates[$item->datestart] = $item->datestart;
+  }
+
+  return $dates;
+}
+
+/**
+ * Get all modifications or by id
+ * @param null $id
+ * @return mixed
+ */
+function carfield_get_modifications($id = NULL) {
+  $query = db_select('carfield_modifications', 'c')->fields('c', array('id', 'name', 'short', 'type'));
+  if ($id) {
+    $query->condition('id', $id);
+  }
+
+  $result = $query->execute()->fetchAllAssoc('id');
+  return $result;
+}
+
+/**
+ * Get all types car or by id
+ * @param null $id
+ * @return mixed
+ */
+function carfield_get_types($id = NULL) {
+  $query = db_select('carfield_types', 't')->fields('t', array('id', 'name'));
+  if ($id) {
+    $query->condition('id', $id);
+  }
+
+  $result = $query->execute()->fetchAllAssoc('id');
+  return $result;
+}
+
+
+/**
+ * Get all cars by params
+ * @param null $id
+ * @return mixed
+ */
+function carfield_get_mode_by_model($model) {
+  $query = db_select('carfield_modifications', 'mode')->fields('mode', array('id', 'name', 'short', 'type'));
+  $query->condition('mid', $model);
+  $query->orderBy('name');
+  $result = $query->execute()->fetchAllAssoc('id');
+  return $result;
+}
+
+
+function carfield_get_manufactures_by_type($id) {
+  $query = db_select('carfield_manufactures', 'manufacture')->fields('manufacture', array('id', 'name'));
+  $query->innerJoin('carfield_models', 'model', 'model.mid = manufacture.id');
+  $query->innerJoin('carfield_modifications', 'modification', 'modification.mid = model.id');
+  $query->innerJoin('carfield_types', 'type', 'type.id = modification.type');
+  $query->condition('type.id', $id);
+  $query->orderBy('name');
+  $result = $query->execute()->fetchAllAssoc('id');
+  return $result;
+}
+
+function carfield_get_years_by_model($manufacture, $type) {
+  $query = db_select('carfield_models', 'model')->fields('model', array('id', 'name', 'datestart', 'dateend'));
+  $query->innerJoin('carfield_manufactures', 'manufacture', 'manufacture.id = model.mid');
+  $query->innerJoin('carfield_modifications', 'modification', 'modification.mid = model.id');
+  $query->innerJoin('carfield_types', 'type', 'type.id = modification.type');
+
+  $query->condition('type.id', $type);
+  $query->condition('manufacture.id', $manufacture);
+  $query->orderBy('name');
+  $result = $query->execute();
+  $dates = array();
+  foreach ($result as $item) {
+    if ($item->dateend == '') {
+      $item->dateend = format_date(time(), 'custom', 'Y');
+    }
+
+    for ($i = $item->datestart; $i <= $item->dateend; $i++) {
+      $dates[$i] = (int)$i;
+    }
+
+  }
+
+  asort($dates);
+
+  return $dates;
+}
+
+function carfield_get_models_by_year($manufacture, $year, $type) {
+  $query = db_select('carfield_models', 'model')->fields('model', array('id', 'name', 'datestart', 'dateend'));
+  $query->innerJoin('carfield_manufactures', 'manufacture', 'manufacture.id = model.mid');
+  $query->innerJoin('carfield_modifications', 'modification', 'modification.mid = model.id');
+  $query->innerJoin('carfield_types', 'type', 'type.id = modification.type');
+
+  $query->condition('type.id', $type);
+  $query->condition('manufacture.id', $manufacture);
+
+  $db_and = db_and();
+  $db_and->condition('model.datestart', $year, '<=');
+
+  $db_or = db_or();
+  $db_or->condition('model.dateend', $year, '>=');
+  $db_or->condition('model.dateend', NULL, 'IS NULL');
+
+  $db_and->condition($db_or);
+
+  $query->condition($db_and);
+  $query->orderBy('name');
+  $result = $query->execute()->fetchAllAssoc('id');
+  return $result;
+}
+
+/**
+ * Implements hook_menu().
+ */
+function carfield_menu() {
+  $items = array();
+  $items['admin/structure/carfield'] = array(
+    'title' => 'Car field',
+    'description' => 'Car field setting',
+    'page callback' => 'carfield_settings_list',
+    'access arguments' => array('access administration pages'),
+    'access callback' => TRUE,
+  );
+  $items['admin/structure/carfield/list'] = array(
+    'title' => 'List',
+    'type' => MENU_DEFAULT_LOCAL_TASK,
+    'weight' => -10,
+  );
+  $items['admin/structure/carfield/import'] = array(
+    'title' => 'Import',
+    'description' => 'Car field setting',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('carfield_settings_form'),
+    'access arguments' => array('access administration pages'),
+    'type' => MENU_LOCAL_TASK
+  );
+  $items['js/carfield/get_vendor/%'] = array(
+    'page callback' => 'carfield_js_get_vendors_by_param',
+    'page arguments' => array(3),
+    'access callback' => TRUE,
+    'type' => MENU_CALLBACK,
+    'delivery callback' => 'ajax_deliver',
+  );
+
+  $items['js/carfield/get_year/%/%'] = array(
+    'page callback' => 'carfield_js_get_years_by_param',
+    'page arguments' => array(3, 4),
+    'access callback' => TRUE,
+    'type' => MENU_CALLBACK,
+    'delivery callback' => 'ajax_deliver',
+  );
+
+  $items['js/carfield/get_model/%/%/%'] = array(
+    'page callback' => 'carfield_js_get_models_by_param',
+    'page arguments' => array(3, 4, 5),
+    'access callback' => TRUE,
+    'type' => MENU_CALLBACK,
+    'delivery callback' => 'ajax_deliver',
+  );
+
+  $items['js/carfield/get_mode/%'] = array(
+    'page callback' => 'carfield_js_get_modes_by_param',
+    'page arguments' => array(3),
+    'access callback' => TRUE,
+    'type' => MENU_CALLBACK,
+    'delivery callback' => 'ajax_deliver',
+  );
+
+  return $items;
+}
+
+function carfield_js_get_vendors_by_param($type){
+  $vendors = carfield_get_manufactures_by_type($type);
+  $result = array(
+    '#type' => 'ajax',
+    '#commands' => array(
+      array(
+        'command' => 'ProfileCarEdit',
+        'items' => $vendors,
+        'type' => "vendor",
+      ),
+    ),
+  );
+  return $result;
+}
+
+function carfield_js_get_years_by_param($type, $vendor){
+  $years = carfield_get_years_by_model($vendor, $type);
+  $result = array(
+    '#type' => 'ajax',
+    '#commands' => array(
+      array(
+        'command' => 'ProfileCarEdit',
+        'items' => $years,
+        'type' => "year",
+      ),
+    ),
+  );
+  return $result;
+}
+
+
+function carfield_js_get_models_by_param($type, $vendor, $year){
+  $models = carfield_get_models_by_year($vendor, $year, $type);
+  $result = array(
+    '#type' => 'ajax',
+    '#commands' => array(
+      array(
+        'command' => 'ProfileCarEdit',
+        'items' => $models,
+        'type' => "model",
+      ),
+    ),
+  );
+  return $result;
+}
+
+function carfield_js_get_modes_by_param($model){
+  $modes = carfield_get_mode_by_model($model);
+  $result = array(
+    '#type' => 'ajax',
+    '#commands' => array(
+      array(
+        'command' => 'ProfileCarEdit',
+        'items' => $modes,
+        'type' => "mode",
+      ),
+    ),
+  );
+  return $result;
+}
+
+
+function carfield_settings_list(){
+  $query = db_select('carfield_manufactures', 'c')->fields('c', array('id', 'name'))->extend('PagerDefault');
+  $query->limit(40);
+
+  $header = array('ID', 'Manufacture', 'Models', 'Modifications', 'Operations');
+  $rows = array();
+
+  $result = $query->execute()->fetchAllAssoc('id');
+
+  foreach ($result as $key => $manufacture) {
+    $row = array();
+    $row[] = $manufacture->id;
+    $row[] = $manufacture->name;
+    $query = db_select('carfield_models', 'c');
+    $query->condition('c.mid', $manufacture->id);
+    $query->addExpression('COUNT(*)');
+    $count = $query->execute()->fetchField();
+
+    $row[] = l(t('Stored @count models', array('@count' => $count)), 'admin/structure/carfield/models');
+
+    $query = db_select('carfield_models', 'c');
+    $query->condition('c.mid', $manufacture->id);
+    $query->innerJoin('carfield_modifications', 'modifications', 'modifications.mid = c.id');
+    $query->addExpression('COUNT(*)');
+    $count = $query->execute()->fetchField();
+
+    $row[] = l(t('Stored @count modifications', array('@count' => $count)), 'admin/structure/carfield/modifications');
+    $row[] = '';
+
+    $rows[] = $row;
+  }
+
+  return theme('table', array('rows' => $rows, 'header' => $header)).theme('pager');
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+function carfield_settings_form($form, &$form_state) {
+  $form['submit'] = array(
+    '#type' => 'submit',
+    '#value' => t('Import'),
+    '#submit' => array('carfield_settings_form_import')
+  );
+
+  return $form;
+}
+
+function carfield_settings_form_import($form, $form_state) {
+  $batch = carfield_import_batch();
+  batch_set($batch);
+}
+
+/**
+ * Batch function generate operations
+ * @return array
+ */
+function carfield_import_batch() {
+
+  // first get all types and import
+  $types = file_get_contents("http://daway.com/tecdoc.php?q=types&ln=4");
+  $types = json_decode($types);
+  foreach ($types as $type) {
+    $data = (array) $type;
+    // check isset INDEX
+    $is_set = carfield_get_types($data['id']);
+    if (empty($is_set)) {
+      db_insert('carfield_types')->fields($data)->execute();
+    } else {
+      db_update('carfield_types')->fields($data)->condition('id', $data['id'])->execute();
+    }
+  }
+
+  // get all manufactures
+  $manufactures = file_get_contents("http://daway.com/tecdoc.php?q=manufactures&ln=4");
+  $manufactures = json_decode($manufactures);
+
+  $operations = array();
+
+  foreach ($manufactures as $manufacture) {
+    $data = array(
+      'id' => $manufacture->id,
+      'name' => $manufacture->name
+    );
+    $operations[] = array(
+      'carfield_import_batch_op',
+      array(
+        $data,
+        t('(Operation import'),
+      ),
+    );
+  }
+
+  $batch = array(
+    'operations' => $operations,
+    'finished' => 'carfield_import_batch_finished',
+  );
+  return $batch;
+}
+
+/**
+ * Batch import callback
+ * @param $data
+ * @param $operation_details
+ * @param $context
+ */
+function carfield_import_batch_op($data, $operation_details, &$context) {
+
+  // check isset INDEX
+  $is_set = carfield_get_manufactures($data['id']);
+  if (empty($is_set)) {
+    db_insert('carfield_manufactures')->fields($data)->execute();
+  } else {
+    db_update('carfield_manufactures')->fields($data)->condition('id', $data['id'])->execute();
+  }
+
+  $manufacture = $data;
+
+  $models = file_get_contents("http://daway.com/tecdoc.php?q=models&manufactures=".$data['id']."&ln=4");
+  $models = json_decode($models);
+
+  foreach ($models as $model) {
+    // check isset INDEX
+    $data = array(
+      'id' => $model->id,
+      'name' => $model->name,
+      'mid' => $manufacture['id']
+    );
+    $data['datestart'] = substr($model->date_start, 0, 4);
+    $data['dateend'] = substr($model->date_end, 0, 4);
+    if ($data['datestart'] == '') {
+      unset($data['datestart']);
+    }
+    if ($data['dateend'] == '') {
+      unset($data['dateend']);
+    }
+
+    $is_set = carfield_get_models($data['id']);
+    if (empty($is_set)) {
+      db_insert('carfield_models')->fields($data)->execute();
+    } else {
+      db_update('carfield_models')->fields($data)->condition('id', $data['id'])->execute();
+    }
+
+    $modifications = file_get_contents("http://daway.com/tecdoc.php?q=modifications&model=".$model->id."&ln=4");
+    $modifications = json_decode($modifications);
+
+    foreach ($modifications as $modification) {
+      // check isset INDEX
+      $data = array(
+        'id' => $modification->id,
+        'name' => $modification->name,
+        'short' => $modification->short,
+        'type' => $modification->type,
+        'mid' => $model->id,
+      );
+
+      $is_set = carfield_get_modifications($data['id']);
+      if (empty($is_set)) {
+        db_insert('carfield_modifications')->fields($data)->execute();
+      } else {
+        db_update('carfield_modifications')->fields($data)->condition('id', $data['id'])->execute();
+      }
+    }
+  }
+
+  $context['results'][] = $data['name'];
+  $context['message'] = t('Import car manufactured "@name"', array('@name' => $data['name']));
+}
+
+/**
+ * Batch 'finished' callback used by both batch 1 and batch 2.
+ */
+function carfield_import_batch_finished($success, $results, $operations) {
+  if ($success) {
+    // Here we could do something meaningful with the results.
+    // We just display the number of nodes we processed...
+    drupal_set_message(t('@count results processed.', array('@count' => count($results))));
+    drupal_set_message(t('The final result was "%final"', array('%final' => end($results))));
+  }
+  else {
+    // An error occurred.
+    // $operations contains the operations that remained unprocessed.
+    $error_operation = reset($operations);
+    drupal_set_message(
+      t('An error occurred while processing @operation with arguments : @args',
+        array(
+          '@operation' => $error_operation[0],
+          '@args' => print_r($error_operation[0], TRUE),
+        )
+      )
+    );
+  }
+}
